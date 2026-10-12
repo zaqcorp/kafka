@@ -1,0 +1,41 @@
+services:
+  kafka:
+    # Bitnami legacy 镜像，跨平台（arm64/v8 + amd64），与 SAP bizx 本地开发环境对齐：
+    #   https://hub.docker.com/r/bitnamilegacy/kafka
+    #   https://github.com/bitnami/containers/blob/main/bitnami/kafka/README.md
+    # 3.8.1 版本对齐 SAP bizx ivy-versions.properties。
+    image: bitnamilegacy/kafka:3.8.1
+    container_name: kafka
+    # 不设 container_name，交给 compose 自动生成（docker-kit-kafka-1），
+    # 避免与 SAP bizx 本地开发环境同名冲突。
+    # hostname 保留为 kafka，供 KRaft 内部 listener 解析用。
+    hostname: kafka
+    restart: always
+    networks:
+      - docker-kit-network
+    ports:
+      - '${KAFKA_PORT}:9092'
+    expose:
+      - 9092
+      - 9093
+    env_file:
+      - kafka.env
+    environment:
+      # 外部 advertised listener 走 .env 里的域名/端口，
+      # 供宿主机 / 其它 network 上的客户端连接。
+      KAFKA_CFG_ADVERTISED_LISTENERS: SASL_PLAINTEXT://${KAFKA_HOSTNAME}:${KAFKA_PORT}
+    volumes:
+      - kafka_data:/bitnami/kafka
+    deploy:
+      resources:
+        limits:
+          memory: ${KAFKA_MEMORY:-2G}
+
+volumes:
+  kafka_data:
+    external: true
+
+networks:
+  docker-kit-network:
+    external: true
+
